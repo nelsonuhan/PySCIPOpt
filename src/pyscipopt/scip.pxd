@@ -214,6 +214,12 @@ cdef extern from "scip/scip.h":
         SCIP_LPSOLQUALITY_ESTIMCONDITION = 0
         SCIP_LPSOLQUALITY_EXACTCONDITION = 1
 
+    ctypedef enum SCIP_BASESTAT:
+        SCIP_BASESTAT_LOWER = 0
+        SCIP_BASESTAT_BASIC = 1
+        SCIP_BASESTAT_UPPER = 2
+        SCIP_BASESTAT_ZERO  = 3
+
     ctypedef bint SCIP_Bool
 
     ctypedef long long SCIP_Longint
@@ -540,6 +546,9 @@ cdef extern from "scip/scip.h":
 
     int SCIPgetNLPRows(SCIP* scip)
     int SCIPgetNLPCols(SCIP* scip)
+    SCIP_RETCODE SCIPgetLPBasisInd(SCIP* scip, int* basisind)
+    SCIP_RETCODE SCIPgetLPBInvCol(SCIP* scip, int c, SCIP_Real* coefs, int* inds, int* ninds)
+
     # Row Methods
     SCIP_RETCODE SCIPcreateRow(SCIP* scip, SCIP_ROW** row, const char* name, int len, SCIP_COL** cols, SCIP_Real* vals,
                                SCIP_Real lhs, SCIP_Real rhs, SCIP_Bool local, SCIP_Bool modifiable, SCIP_Bool removable)

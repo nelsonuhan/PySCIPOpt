@@ -2406,6 +2406,58 @@ cdef class Model:
     def ncols(self):
         return SCIPgetNLPCols(self._scip)
 
+    def getLPBasisInd(self):
+        """
+        Returns the indices of the basic columns and rows;
+        index i >= 0 corresponds to column i, index i < 0 to row -i-1
+        """
+        # Number of rows: basis is size nrows
+        nrows = self.nrows()
+
+        # Array to store basis indices
+        cdef int* c_binds = <int*> malloc(nrows * sizeof(int))
+
+        # Call SCIP
+        PY_SCIP_CALL(SCIPgetLPBasisInd(self._scip, c_binds))
+
+        # Create list of basis indices
+        binds = [c_binds[i] for i in range(nrows)]
+
+        # Free memory
+        free(c_binds)
+
+        # Return list
+        return binds
+
+    def getLPBInvCol(self, c):
+        """Gets a column from the inverse basis matrix"""
+
+        # Number of rows: basis matrix is size nrows x nrows
+        nrows = self.nrows()
+
+        # Array to store coefficients of column
+        # Array to store non-zero indices
+        # Pointer to number of non-zero indices
+        cdef SCIP_Real* c_coefs = <SCIP_Real*> malloc(nrows * sizeof(SCIP_Real))
+        cdef int* c_inds = <int*> malloc(nrows * sizeof(int))
+        cdef int c_ninds
+
+        # Call SCIP
+        PY_SCIP_CALL(SCIPgetLPBInvCol(self._scip, c, c_coefs, c_inds, &c_ninds))
+
+        # Create list of coefficients and their corresponding indices
+        inds = [c_inds[i] for i in range(c_ninds)]
+        coefs = [c_coefs[i] for i in inds]
+
+        # Free memory
+        free(c_coefs)
+        free(c_inds)
+
+        # Return two matched lists:
+        # - coefs: nonzero coefficients of requested basis inverse column
+        # - inds: corresponding row indices
+        return coefs, inds
+
 # debugging memory management
 def is_memory_freed():
     return BMSgetMemoryUsed() == 0
