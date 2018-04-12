@@ -544,15 +544,32 @@ cdef extern from "scip/scip.h":
     SCIP_RETCODE SCIPreadSol(SCIP* scip, const char* filename)
     SCIP_RETCODE SCIPreadSolFile(SCIP* scip, const char* filename, SCIP_SOL* sol, SCIP_Bool xml, SCIP_Bool*	partial, SCIP_Bool*	error)
 
+    # LP Relaxation Methods
     int SCIPgetNLPRows(SCIP* scip)
     int SCIPgetNLPCols(SCIP* scip)
+    SCIP_COL** SCIPgetLPCols(SCIP* scip)
+    SCIP_ROW** SCIPgetLPRows(SCIP* scip)
     SCIP_RETCODE SCIPgetLPBasisInd(SCIP* scip, int* basisind)
     SCIP_RETCODE SCIPgetLPBInvCol(SCIP* scip, int c, SCIP_Real* coefs, int* inds, int* ninds)
+
+    # Column methods
+    int SCIPcolGetIndex(SCIP_COL* col)
+    SCIP_VAR* SCIPcolGetVar(SCIP_COL* col)
+    SCIP_Real SCIPcolGetObj(SCIP_COL* col)
+    int SCIPcolGetNLPNonz(SCIP_COL* col)
+    SCIP_ROW** SCIPcolGetRows(SCIP_COL* col)
+    SCIP_Real* SCIPcolGetVals(SCIP_COL* col)
 
     # Row Methods
     SCIP_RETCODE SCIPcreateRow(SCIP* scip, SCIP_ROW** row, const char* name, int len, SCIP_COL** cols, SCIP_Real* vals,
                                SCIP_Real lhs, SCIP_Real rhs, SCIP_Bool local, SCIP_Bool modifiable, SCIP_Bool removable)
     SCIP_RETCODE SCIPaddRow(SCIP* scip, SCIP_ROW* row, SCIP_Bool forcecut, SCIP_Bool* infeasible)
+    int SCIProwGetIndex(SCIP_ROW* row)
+    SCIP_Real SCIProwGetLhs(SCIP_ROW* row)
+    SCIP_Real SCIProwGetRhs(SCIP_ROW* row)
+    int SCIProwGetNLPNonz(SCIP_ROW* row)
+    SCIP_COL** SCIProwGetCols(SCIP_ROW* row)
+    SCIP_Real* SCIProwGetVals(SCIP_ROW* row)
 
     # Dual Solution Methods
     SCIP_Real SCIPgetDualbound(SCIP* scip)

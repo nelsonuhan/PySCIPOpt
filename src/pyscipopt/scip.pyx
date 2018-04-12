@@ -248,6 +248,38 @@ cdef class Column:
         col.col = scip_col
         return col
 
+    def getIndex(self):
+        return SCIPcolGetIndex(self.col)
+
+    def getVar(self):
+        cdef SCIP_VAR* c_var
+        c_var = SCIPcolGetVar(self.col)
+        return Variable.create(c_var)
+
+    def getObj(self):
+        return SCIPcolGetObj(self.col)
+
+    def getNLPNonz(self):
+        return SCIPcolGetNLPNonz(self.col)
+
+    def getRows(self):
+        nnz = self.getNLPNonz()
+        cdef SCIP_ROW** c_rows = <SCIP_ROW**> malloc(nnz * sizeof(SCIP_ROW*))
+        c_rows = SCIPcolGetRows(self.col)
+
+        # Create list of Rows
+        rows = [Row.create(c_rows[i]) for i in range(nnz)]
+        return rows
+
+    def getVals(self):
+        nnz = self.getNLPNonz()
+        cdef SCIP_Real* c_vals = <SCIP_Real*> malloc(nnz * sizeof(SCIP_Real))
+        c_vals = SCIPcolGetVals(self.col)
+
+        # Create list of values
+        vals = [c_vals[i] for i in range(nnz)]
+        return vals
+
 cdef class Row:
     """Base class holding a pointer to corresponding SCIP_ROW"""
     cdef SCIP_ROW* row
@@ -257,6 +289,36 @@ cdef class Row:
         row = Row()
         row.row = scip_row
         return row
+
+    def getIndex(self):
+        return SCIProwGetIndex(self.row)
+
+    def getLhs(self):
+        return SCIProwGetLhs(self.row)
+
+    def getRhs(self):
+        return SCIProwGetRhs(self.row)
+
+    def getNLPNonz(self):
+        return SCIProwGetNLPNonz(self.row)
+
+    def getRows(self):
+        nnz = self.getNLPNonz()
+        cdef SCIP_COL** c_cols = <SCIP_COL**> malloc(nnz * sizeof(SCIP_COL*))
+        c_cols = SCIProwGetCols(self.row)
+
+        # Create list of Rows
+        cols = [Column.create(c_cols[i]) for i in range(nnz)]
+        return cols
+
+    def getVals(self):
+        nnz = self.getNLPNonz()
+        cdef SCIP_Real* c_vals = <SCIP_Real*> malloc(nnz * sizeof(SCIP_Real))
+        c_vals = SCIProwGetVals(self.row)
+
+        # Create list of values
+        vals = [c_vals[i] for i in range(nnz)]
+        return vals
 
 cdef class Solution:
     """Base class holding a pointer to corresponding SCIP_SOL"""
@@ -2405,6 +2467,42 @@ cdef class Model:
 
     def ncols(self):
         return SCIPgetNLPCols(self._scip)
+
+    def getLPCols(self):
+        ncols = self.ncols()
+
+        # Allocate memory for columns
+        cdef SCIP_COL** c_cols = <SCIP_COL**> malloc(ncols * sizeof(SCIP_COL*))
+
+        # Call SCIP
+        c_cols = SCIPgetLPCols(self._scip)
+
+        # Create list of columns
+        cols = [Column.create(c_cols[j]) for j in range(ncols)]
+
+        # Free memory
+        # free(c_cols)
+
+        # Return columns
+        return cols
+
+    def getLPRows(self):
+        nrows = self.nrows()
+
+        # Allocate memory for rows
+        cdef SCIP_ROW** c_rows = <SCIP_ROW**> malloc(nrows * sizeof(SCIP_ROW*))
+
+        # Call SCIP
+        c_rows = SCIPgetLPRows(self._scip)
+
+        # Create list of rows
+        rows = [Row.create(c_rows[j]) for j in range(nrows)]
+
+        # Free memory
+        # free(c_cols)
+
+        # Return rows
+        return rows
 
     def getLPBasisInd(self):
         """
