@@ -2399,6 +2399,13 @@ cdef class Model:
 
         free(_coeffs)
 
+    # LP relaxation methods
+    def nrows(self):
+        return SCIPgetNLPRows(self._scip)
+
+    def ncols(self):
+        return SCIPgetNLPCols(self._scip)
+
 # debugging memory management
 def is_memory_freed():
     return BMSgetMemoryUsed() == 0
