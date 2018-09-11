@@ -302,7 +302,7 @@ cdef class Row:
     def getNLPNonz(self):
         return SCIProwGetNLPNonz(self.row)
 
-    def getRows(self):
+    def getCols(self):
         nnz = self.getNLPNonz()
         cdef SCIP_COL** c_cols = <SCIP_COL**> malloc(nnz * sizeof(SCIP_COL*))
         c_cols = SCIProwGetCols(self.row)
@@ -992,6 +992,56 @@ cdef class Model:
         for key, coeff in terms.items():
             var = <Variable>key[0]
             PY_SCIP_CALL(SCIPaddCoefLinear(self._scip, scip_cons, var.var, <SCIP_Real>coeff))
+
+        PY_SCIP_CALL(SCIPaddCons(self._scip, scip_cons))
+        PyCons = Constraint.create(scip_cons)
+        PY_SCIP_CALL(SCIPreleaseCons(self._scip, &scip_cons))
+
+        return PyCons
+
+    def addConsLinear(self, nvars, variables, values, lhs=None, rhs=None,
+                      name='', initial=True, separate=True,
+                      enforce=True, check=True, propagate=True, local=False,
+                      modifiable=False, dynamic=False, removable=False,
+                      stickingatnode=False):
+        """
+        Add linear constraint
+        """
+        if name == '':
+            name = 'c'+str(SCIPgetNConss(self._scip)+1)
+
+        kwargs = dict(name=name, initial=initial, separate=separate,
+                      enforce=enforce, check=check,
+                      propagate=propagate, local=local,
+                      modifiable=modifiable, dynamic=dynamic,
+                      removable=removable,
+                      stickingatnode=stickingatnode)
+
+        lhs = -SCIPinfinity(self._scip) if lhs is None else lhs
+        rhs =  SCIPinfinity(self._scip) if rhs is None else rhs
+
+        cdef SCIP_VAR** scip_vars
+        cdef SCIP_CONS* scip_cons
+        cdef SCIP_Real* scip_vals
+
+        scip_vars = <SCIP_VAR**> malloc(len(variables) * sizeof(SCIP_VAR*))
+        for idx, var in enumerate(variables):
+            scip_vars[idx] = (<Variable>var).var
+
+        scip_vals = <SCIP_Real*> malloc(len(values) * sizeof(SCIP_Real))
+        for idx, val in enumerate(values):
+            scip_vals[idx] = val
+
+        PY_SCIP_CALL(SCIPcreateConsLinear(
+            self._scip, &scip_cons, str_conversion(kwargs['name']),
+            nvars, scip_vars, scip_vals, lhs, rhs,
+            kwargs['initial'], kwargs['separate'], kwargs['enforce'],
+            kwargs['check'], kwargs['propagate'], kwargs['local'],
+            kwargs['modifiable'], kwargs['dynamic'], kwargs['removable'],
+            kwargs['stickingatnode']))
+
+        free(scip_vars)
+        free(scip_vals)
 
         PY_SCIP_CALL(SCIPaddCons(self._scip, scip_cons))
         PyCons = Constraint.create(scip_cons)
@@ -2353,6 +2403,34 @@ cdef class Model:
         n = str_conversion(name)
         PY_SCIP_CALL(SCIPsetStringParam(self._scip, n, value))
 
+    def getParam(self, name):
+        """Get the value of a parameter of type
+        int, bool, real, long, char or str.
+        :param name: name of parameter
+        """
+        cdef SCIP_PARAM* param
+
+        n = str_conversion(name)
+        param = SCIPgetParam(self._scip, n)
+
+        if param == NULL:
+            raise KeyError("Not a valid parameter name")
+
+        paramtype =  SCIPparamGetType(param)
+
+        if paramtype == SCIP_PARAMTYPE_BOOL:
+            return SCIPparamGetBool(param)
+        elif paramtype == SCIP_PARAMTYPE_INT:
+            return SCIPparamGetInt(param)
+        elif paramtype == SCIP_PARAMTYPE_LONGINT:
+            return SCIPparamGetLongint(param)
+        elif paramtype == SCIP_PARAMTYPE_REAL:
+            return SCIPparamGetReal(param)
+        elif paramtype == SCIP_PARAMTYPE_CHAR:
+            return SCIPparamGetChar(param)
+        elif paramtype == SCIP_PARAMTYPE_STRING:
+            return SCIPparamGetString(param)
+
     def readParams(self, file):
         """Read an external parameter file.
 
@@ -2550,13 +2628,13 @@ cdef class Model:
         """Gets a column from the inverse basis matrix"""
 
         # Number of rows: basis matrix is size nrows x nrows
-        nrows = self.nrows()
+        m = self.nrows()
 
         # Array to store coefficients of column
         # Array to store non-zero indices
         # Pointer to number of non-zero indices
-        cdef SCIP_Real* c_coefs = <SCIP_Real*> malloc(nrows * sizeof(SCIP_Real))
-        cdef int* c_inds = <int*> malloc(nrows * sizeof(int))
+        cdef SCIP_Real* c_coefs = <SCIP_Real*> malloc(m * sizeof(SCIP_Real))
+        cdef int* c_inds = <int*> malloc(m * sizeof(int))
         cdef int c_ninds
 
         # Call SCIP
