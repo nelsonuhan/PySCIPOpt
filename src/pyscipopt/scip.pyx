@@ -521,6 +521,12 @@ cdef class Constraint:
         """Retrieve True if constraint is only locally valid or not added to any (sub)problem"""
         return SCIPconsIsStickingAtNode(self.cons)
 
+cdef void relayMessage(SCIP_MESSAGEHDLR *messagehdlr, FILE *file, const char *msg):
+    sys.stdout.write(msg.decode('UTF-8'))
+
+cdef void relayErrorMessage(void *messagehdlr, FILE *file, const char *msg):
+    sys.stderr.write(msg.decode('UTF-8'))
+
 # - remove create(), includeDefaultPlugins(), createProbBasic() methods
 # - replace free() by "destructor"
 # - interface SCIPfreeProb()
@@ -2340,6 +2346,15 @@ cdef class Model:
 
         """
         SCIPsetMessagehdlrQuiet(self._scip, quiet)
+
+    def redirectOutput(self):
+        """Send output to python instead of terminal."""
+
+        cdef SCIP_MESSAGEHDLR *myMessageHandler
+
+        PY_SCIP_CALL(SCIPmessagehdlrCreate(&myMessageHandler, False, NULL, False, relayMessage, relayMessage, relayMessage, NULL, NULL))
+        PY_SCIP_CALL(SCIPsetMessagehdlr(self._scip, myMessageHandler))
+        SCIPmessageSetErrorPrinting(relayErrorMessage, NULL)
 
     # Parameter Methods
 
