@@ -735,6 +735,22 @@ cdef extern from "scip/scip.h":
 
     SCIP_RETCODE SCIPsetRelaxSolVal(SCIP* scip, SCIP_VAR* var, SCIP_Real val)
 
+    # LP Relaxation Methods
+    int SCIPgetNLPRows(SCIP* scip)
+    int SCIPgetNLPCols(SCIP* scip)
+    SCIP_COL** SCIPgetLPCols(SCIP* scip)
+    SCIP_ROW** SCIPgetLPRows(SCIP* scip)
+    SCIP_RETCODE SCIPgetLPBasisInd(SCIP* scip, int* basisind)
+    SCIP_RETCODE SCIPgetLPBInvCol(SCIP* scip, int c, SCIP_Real* coefs, int* inds, int* ninds)
+
+    # Column methods
+    int SCIPcolGetIndex(SCIP_COL* col)
+    SCIP_VAR* SCIPcolGetVar(SCIP_COL* col)
+    SCIP_Real SCIPcolGetObj(SCIP_COL* col)
+    int SCIPcolGetNLPNonz(SCIP_COL* col)
+    SCIP_ROW** SCIPcolGetRows(SCIP_COL* col)
+    SCIP_Real* SCIPcolGetVals(SCIP_COL* col)
+
     # Row Methods
     SCIP_RETCODE SCIPcreateRow(SCIP* scip, SCIP_ROW** row, const char* name, int len, SCIP_COL** cols, SCIP_Real* vals,
                                SCIP_Real lhs, SCIP_Real rhs, SCIP_Bool local, SCIP_Bool modifiable, SCIP_Bool removable)
@@ -1153,12 +1169,19 @@ cdef extern from "scip/scip.h":
     SCIP_RETCODE SCIPlpiGetDualfarkas(SCIP_LPI* lpi, SCIP_Real* dualfarkas)
     SCIP_RETCODE SCIPlpiGetBasisInd(SCIP_LPI* lpi, int* bind)
     SCIP_RETCODE SCIPlpiGetRealSolQuality(SCIP_LPI* lpi, SCIP_LPSOLQUALITY qualityindicator, SCIP_Real* quality)
+    SCIP_RETCODE SCIPlpiSetIntpar(SCIP_LPI* lpi, SCIP_LPPARAM type, int ival)
+    SCIP_RETCODE SCIPlpiSetRealpar(SCIP_LPI* lpi, SCIP_LPPARAM type, SCIP_Real dval)
+    SCIP_RETCODE SCIPlpiGetBInvCol(SCIP_LPI* lpi, int c, SCIP_Real* coef, int* inds, int* ninds)
+    SCIP_RETCODE SCIPlpiGetCols(SCIP_LPI* lpi, int firstcol, int lastcol, SCIP_Real* lb, SCIP_Real* ub, int* nnonz, int* beg, int* ind, SCIP_Real* val)
+    SCIP_RETCODE SCIPlpiGetObj(SCIP_LPI* lpi, int firstcol, int lastcol, SCIP_Real* vals)
     SCIP_Bool    SCIPlpiHasPrimalRay(SCIP_LPI* lpi)
     SCIP_Bool    SCIPlpiHasDualRay(SCIP_LPI* lpi)
     SCIP_Real    SCIPlpiInfinity(SCIP_LPI* lpi)
     SCIP_Bool    SCIPlpiIsInfinity(SCIP_LPI* lpi, SCIP_Real val)
     SCIP_Bool    SCIPlpiIsPrimalFeasible(SCIP_LPI* lpi)
     SCIP_Bool    SCIPlpiIsDualFeasible(SCIP_LPI* lpi)
+    SCIP_Bool    SCIPlpiIsPrimalUnbounded(SCIP_LPI* lpi)
+    SCIP_Bool    SCIPlpiIsDualUnbounded(SCIP_LPI* lpi)
 
     #re-optimization routines
     SCIP_RETCODE SCIPfreeReoptSolve(SCIP* scip)
@@ -1491,6 +1514,7 @@ cdef extern from "scip/paramset.h":
 
 cdef extern from "scip/pub_lp.h":
     # Row Methods
+    int SCIProwGetIndex(SCIP_ROW* row)
     SCIP_Real SCIProwGetLhs(SCIP_ROW* row)
     SCIP_Real SCIProwGetRhs(SCIP_ROW* row)
     SCIP_Real SCIProwGetConstant(SCIP_ROW* row)
@@ -1510,3 +1534,26 @@ cdef extern from "scip/pub_lp.h":
     SCIP_Real SCIPcolGetPrimsol(SCIP_COL* col)
     SCIP_Real SCIPcolGetLb(SCIP_COL* col)
     SCIP_Real SCIPcolGetUb(SCIP_COL* col)
+
+cdef extern from "lpi/type_lpi.h":
+    ctypedef enum SCIP_LPPARAM:
+        SCIP_LPPAR_FROMSCRATCH    =  0
+        SCIP_LPPAR_FASTMIP        =  1
+        SCIP_LPPAR_SCALING        =  2
+        SCIP_LPPAR_PRESOLVING     =  3
+        SCIP_LPPAR_PRICING        =  4
+        SCIP_LPPAR_LPINFO         =  5
+        SCIP_LPPAR_FEASTOL        =  6
+        SCIP_LPPAR_DUALFEASTOL    =  7
+        SCIP_LPPAR_BARRIERCONVTOL =  8
+        SCIP_LPPAR_OBJLIM         =  9
+        SCIP_LPPAR_LPITLIM        = 10
+        SCIP_LPPAR_LPTILIM        = 11
+        SCIP_LPPAR_MARKOWITZ      = 12
+        SCIP_LPPAR_ROWREPSWITCH   = 13
+        SCIP_LPPAR_THREADS        = 14
+        SCIP_LPPAR_CONDITIONLIMIT = 15
+        SCIP_LPPAR_TIMING         = 16
+        SCIP_LPPAR_RANDOMSEED     = 17
+        SCIP_LPPAR_POLISHING      = 18
+        SCIP_LPPAR_REFACTOR       = 19

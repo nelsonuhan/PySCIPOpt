@@ -327,6 +327,33 @@ cdef class Column:
         """gets upper bound of column"""
         return SCIPcolGetUb(self.col)
 
+    def getIndex(self):
+        return SCIPcolGetIndex(self.col)
+
+    def getObj(self):
+        return SCIPcolGetObj(self.col)
+
+    def getNLPNonz(self):
+        return SCIPcolGetNLPNonz(self.col)
+
+    def getRows(self):
+        nnz = self.getNLPNonz()
+        cdef SCIP_ROW** c_rows = <SCIP_ROW**> malloc(nnz * sizeof(SCIP_ROW*))
+        c_rows = SCIPcolGetRows(self.col)
+
+        # Create list of Rows
+        rows = [Row.create(c_rows[i]) for i in range(nnz)]
+        return rows
+
+    def getVals(self):
+        nnz = self.getNLPNonz()
+        cdef SCIP_Real* c_vals = <SCIP_Real*> malloc(nnz * sizeof(SCIP_Real))
+        c_vals = SCIPcolGetVals(self.col)
+
+        # Create list of values
+        vals = [c_vals[i] for i in range(nnz)]
+        return vals
+
 cdef class Row:
     """Base class holding a pointer to corresponding SCIP_ROW"""
     cdef SCIP_ROW* row
@@ -393,6 +420,9 @@ cdef class Row:
         """gets list with coefficients of nonzero entries"""
         cdef SCIP_Real* vals = SCIProwGetVals(self.row)
         return [vals[i] for i in range(self.getNNonz())]
+
+    def getIndex(self):
+        return SCIProwGetIndex(self.row)
 
 cdef class Solution:
     """Base class holding a pointer to corresponding SCIP_SOL"""
@@ -1488,6 +1518,56 @@ cdef class Model:
         for key, coeff in terms.items():
             var = <Variable>key[0]
             PY_SCIP_CALL(SCIPaddCoefLinear(self._scip, scip_cons, var.var, <SCIP_Real>coeff))
+
+        PY_SCIP_CALL(SCIPaddCons(self._scip, scip_cons))
+        PyCons = Constraint.create(scip_cons)
+        PY_SCIP_CALL(SCIPreleaseCons(self._scip, &scip_cons))
+
+        return PyCons
+
+    def addConsLinear(self, nvars, variables, values, lhs=None, rhs=None,
+                      name='', initial=True, separate=True,
+                      enforce=True, check=True, propagate=True, local=False,
+                      modifiable=False, dynamic=False, removable=False,
+                      stickingatnode=False):
+        """
+        Add linear constraint
+        """
+        if name == '':
+            name = 'c'+str(SCIPgetNConss(self._scip)+1)
+
+        kwargs = dict(name=name, initial=initial, separate=separate,
+                      enforce=enforce, check=check,
+                      propagate=propagate, local=local,
+                      modifiable=modifiable, dynamic=dynamic,
+                      removable=removable,
+                      stickingatnode=stickingatnode)
+
+        lhs = -SCIPinfinity(self._scip) if lhs is None else lhs
+        rhs =  SCIPinfinity(self._scip) if rhs is None else rhs
+
+        cdef SCIP_VAR** scip_vars
+        cdef SCIP_CONS* scip_cons
+        cdef SCIP_Real* scip_vals
+
+        scip_vars = <SCIP_VAR**> malloc(len(variables) * sizeof(SCIP_VAR*))
+        for idx, var in enumerate(variables):
+            scip_vars[idx] = (<Variable>var).var
+
+        scip_vals = <SCIP_Real*> malloc(len(values) * sizeof(SCIP_Real))
+        for idx, val in enumerate(values):
+            scip_vals[idx] = val
+
+        PY_SCIP_CALL(SCIPcreateConsLinear(
+            self._scip, &scip_cons, str_conversion(kwargs['name']),
+            nvars, scip_vars, scip_vals, lhs, rhs,
+            kwargs['initial'], kwargs['separate'], kwargs['enforce'],
+            kwargs['check'], kwargs['propagate'], kwargs['local'],
+            kwargs['modifiable'], kwargs['dynamic'], kwargs['removable'],
+            kwargs['stickingatnode']))
+
+        free(scip_vars)
+        free(scip_vals)
 
         PY_SCIP_CALL(SCIPaddCons(self._scip, scip_cons))
         PyCons = Constraint.create(scip_cons)
@@ -3638,6 +3718,34 @@ cdef class Model:
             return SCIPparamGetString(param)
 
 
+    def getParam(self, name):
+        """Get the value of a parameter of type
+        int, bool, real, long, char or str.
+        :param name: name of parameter
+        """
+        cdef SCIP_PARAM* param
+
+        n = str_conversion(name)
+        param = SCIPgetParam(self._scip, n)
+
+        if param == NULL:
+            raise KeyError("Not a valid parameter name")
+
+        paramtype =  SCIPparamGetType(param)
+
+        if paramtype == SCIP_PARAMTYPE_BOOL:
+            return SCIPparamGetBool(param)
+        elif paramtype == SCIP_PARAMTYPE_INT:
+            return SCIPparamGetInt(param)
+        elif paramtype == SCIP_PARAMTYPE_LONGINT:
+            return SCIPparamGetLongint(param)
+        elif paramtype == SCIP_PARAMTYPE_REAL:
+            return SCIPparamGetReal(param)
+        elif paramtype == SCIP_PARAMTYPE_CHAR:
+            return SCIPparamGetChar(param)
+        elif paramtype == SCIP_PARAMTYPE_STRING:
+            return SCIPparamGetString(param)
+
     def readParams(self, file):
         """Read an external parameter file.
 
@@ -3764,6 +3872,101 @@ cdef class Model:
         PY_SCIP_CALL(SCIPchgReoptObjective(self._scip, objsense, _vars, &_coeffs[0], _nvars))
 
         free(_coeffs)
+
+    # LP relaxation methods
+    def nrows(self):
+        return SCIPgetNLPRows(self._scip)
+
+    def ncols(self):
+        return SCIPgetNLPCols(self._scip)
+
+    def getLPCols(self):
+        ncols = self.ncols()
+
+        # Allocate memory for columns
+        cdef SCIP_COL** c_cols = <SCIP_COL**> malloc(ncols * sizeof(SCIP_COL*))
+
+        # Call SCIP
+        c_cols = SCIPgetLPCols(self._scip)
+
+        # Create list of columns
+        cols = [Column.create(c_cols[j]) for j in range(ncols)]
+
+        # Free memory
+        # free(c_cols)
+
+        # Return columns
+        return cols
+
+    def getLPRows(self):
+        nrows = self.nrows()
+
+        # Allocate memory for rows
+        cdef SCIP_ROW** c_rows = <SCIP_ROW**> malloc(nrows * sizeof(SCIP_ROW*))
+
+        # Call SCIP
+        c_rows = SCIPgetLPRows(self._scip)
+
+        # Create list of rows
+        rows = [Row.create(c_rows[j]) for j in range(nrows)]
+
+        # Free memory
+        # free(c_cols)
+
+        # Return rows
+        return rows
+
+    def getLPBasisInd(self):
+        """
+        Returns the indices of the basic columns and rows;
+        index i >= 0 corresponds to column i, index i < 0 to row -i-1
+        """
+        # Number of rows: basis is size nrows
+        nrows = self.nrows()
+
+        # Array to store basis indices
+        cdef int* c_binds = <int*> malloc(nrows * sizeof(int))
+
+        # Call SCIP
+        PY_SCIP_CALL(SCIPgetLPBasisInd(self._scip, c_binds))
+
+        # Create list of basis indices
+        binds = [c_binds[i] for i in range(nrows)]
+
+        # Free memory
+        free(c_binds)
+
+        # Return list
+        return binds
+
+    def getLPBInvCol(self, c):
+        """Gets a column from the inverse basis matrix"""
+
+        # Number of rows: basis matrix is size nrows x nrows
+        m = self.nrows()
+
+        # Array to store coefficients of column
+        # Array to store non-zero indices
+        # Pointer to number of non-zero indices
+        cdef SCIP_Real* c_coefs = <SCIP_Real*> malloc(m * sizeof(SCIP_Real))
+        cdef int* c_inds = <int*> malloc(m * sizeof(int))
+        cdef int c_ninds
+
+        # Call SCIP
+        PY_SCIP_CALL(SCIPgetLPBInvCol(self._scip, c, c_coefs, c_inds, &c_ninds))
+
+        # Create list of coefficients and their corresponding indices
+        inds = [c_inds[i] for i in range(c_ninds)]
+        coefs = [c_coefs[i] for i in inds]
+
+        # Free memory
+        free(c_coefs)
+        free(c_inds)
+
+        # Return two matched lists:
+        # - coefs: nonzero coefficients of requested basis inverse column
+        # - inds: corresponding row indices
+        return coefs, inds
 
 # debugging memory management
 def is_memory_freed():

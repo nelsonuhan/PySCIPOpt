@@ -1,5 +1,28 @@
 ##@file lp.pxi
 #@brief Base class of the LP Plugin
+cdef class PY_SCIP_LPPARAM:
+    FROMSCRATCH    = SCIP_LPPAR_FROMSCRATCH
+    FASTMIP        = SCIP_LPPAR_FASTMIP
+    SCALING        = SCIP_LPPAR_SCALING
+    PRESOLVING     = SCIP_LPPAR_PRESOLVING
+    PRICING        = SCIP_LPPAR_PRICING
+    LPINFO         = SCIP_LPPAR_LPINFO
+    FEASTOL        = SCIP_LPPAR_FEASTOL
+    DUALFEASTOL    = SCIP_LPPAR_DUALFEASTOL
+    BARRIERCONVTOL = SCIP_LPPAR_BARRIERCONVTOL
+    OBJLIM         = SCIP_LPPAR_OBJLIM
+    LPITLIM        = SCIP_LPPAR_LPITLIM
+    LPTILIM        = SCIP_LPPAR_LPTILIM
+    MARKOWITZ      = SCIP_LPPAR_MARKOWITZ
+    ROWREPSWITCH   = SCIP_LPPAR_ROWREPSWITCH
+    THREADS        = SCIP_LPPAR_THREADS
+    CONDITIONLIMIT = SCIP_LPPAR_CONDITIONLIMIT
+    TIMING         = SCIP_LPPAR_TIMING
+    RANDOMSEED     = SCIP_LPPAR_RANDOMSEED
+    POLISHING      = SCIP_LPPAR_POLISHING
+    REFACTOR       = SCIP_LPPAR_REFACTOR
+
+
 cdef class LP:
     cdef SCIP_LPI* lpi
     cdef readonly str name
@@ -31,7 +54,8 @@ cdef class LP:
         Keyword arguments:
         filename -- the name of the file to be used
         """
-        PY_SCIP_CALL(SCIPlpiWriteLP(self.lpi, filename))
+        fn = str_conversion(filename)
+        PY_SCIP_CALL(SCIPlpiWriteLP(self.lpi, fn))
 
     def readLP(self, filename):
         """Reads LP from a file.
@@ -39,7 +63,8 @@ cdef class LP:
         Keyword arguments:
         filename -- the name of the file to be used
         """
-        PY_SCIP_CALL(SCIPlpiReadLP(self.lpi, filename))
+        fn = str_conversion(filename)
+        PY_SCIP_CALL(SCIPlpiReadLP(self.lpi, fn))
 
     def infinity(self):
         """Returns infinity value of the LP.
@@ -454,3 +479,120 @@ cdef class LP:
 
         free(c_binds)
         return binds
+
+    def setIntpar(self, type, value):
+        """
+        Sets integer parameter of LP
+        """
+        PY_SCIP_CALL(SCIPlpiSetIntpar(self.lpi, type, value))
+
+    def setRealpar(self, type, value):
+        """
+        Sets floating point parameter of LP
+        """
+
+        PY_SCIP_CALL(SCIPlpiSetRealpar(self.lpi, type, value))
+
+    def getBInvCol(self, c):
+        """Gets a column from the inverse basis matrix"""
+
+        # Number of rows: basis matrix is size m x m
+        m = self.nrows()
+
+        # Array to store coefficients of column
+        # Array to store non-zero indices
+        # Pointer to number of non-zero indices
+        cdef SCIP_Real* c_coefs = <SCIP_Real*> malloc(m * sizeof(SCIP_Real))
+        cdef int* c_inds = <int*> malloc(m * sizeof(int))
+        cdef int c_ninds
+
+        # Call SCIP
+        PY_SCIP_CALL(SCIPlpiGetBInvCol(self.lpi, c, c_coefs, c_inds, &c_ninds))
+
+        # Create list of coefficients and their corresponding indices
+        inds = [c_inds[i] for i in range(c_ninds)]
+        coefs = [c_coefs[i] for i in inds]
+
+        # Free memory
+        free(c_coefs)
+        free(c_inds)
+
+        # Return two matched lists:
+        # - coefs: nonzero coefficients of requested basis inverse column
+        # - inds: corresponding row indices
+        return coefs, inds
+
+    def isPrimalUnbounded(self):
+        """Returns True iff LP is proven to be primal unbounded."""
+        return SCIPlpiIsPrimalUnbounded(self.lpi)
+
+    def isDualUnbounded(self):
+        """Returns True iff LP is proven to be dual unbounded."""
+        return SCIPlpiIsDualUnbounded(self.lpi)
+
+    def getCol(self, col):
+        """
+        Gets a single column from the LP
+
+        col -- column index
+        """
+        # Number of rows
+        m = self.nrows()
+
+        # Number of columns
+        ncols = 1
+
+        # Allocate memory for C arrays
+        cdef SCIP_Real* c_lb = <SCIP_Real*> malloc(ncols * sizeof(SCIP_Real))
+        cdef SCIP_Real* c_ub = <SCIP_Real*> malloc(ncols * sizeof(SCIP_Real))
+        cdef int* c_nnonz = <int*> malloc(ncols * sizeof(int))
+        cdef int* c_beg = <int*> malloc(ncols * sizeof(int))
+        cdef int* c_inds = <int*> malloc(m * ncols * sizeof(int))
+        cdef SCIP_Real* c_coefs = <SCIP_Real*> malloc(m * ncols * sizeof(SCIP_Real))
+
+        # Call SCIP
+        PY_SCIP_CALL(SCIPlpiGetCols(self.lpi, col, col, NULL, NULL,
+                                    c_nnonz, c_beg, c_inds, c_coefs))
+
+        # Create list of coefficients and their corresponding indices
+        nnonz = c_nnonz[0]
+        inds = [c_inds[i] for i in range(nnonz)]
+        coefs = [c_coefs[i] for i in range(nnonz)]
+
+        # Free C arrays
+        free(c_lb)
+        free(c_ub)
+        free(c_nnonz)
+        free(c_beg)
+        free(c_inds)
+        free(c_coefs)
+
+        return coefs, inds
+
+    def getObj(self, firstcol=0, lastcol=None):
+        """
+        Gets objective coefficients from LP problem object
+        """
+        n = self.ncols()
+
+        if lastcol is None:
+            lastcol = n - 1
+
+        if firstcol > lastcol:
+            return None
+
+        # Number of columns
+        ncols = lastcol - firstcol + 1
+
+        # Allocate memory for C arrays
+        cdef SCIP_Real* c_vals = <SCIP_Real*> malloc(ncols * sizeof(SCIP_Real))
+
+        # Call SCIP
+        PY_SCIP_CALL(SCIPlpiGetObj(self.lpi, firstcol, lastcol, c_vals))
+
+        obj = [c_vals[i] for i in range(ncols)]
+
+        # Free C arrays
+        free(c_vals)
+
+        return obj
