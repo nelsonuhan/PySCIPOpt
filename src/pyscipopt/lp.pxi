@@ -522,6 +522,35 @@ cdef class LP:
         # - inds: corresponding row indices
         return coefs, inds
 
+    def getBInvRow(self, r):
+        """Gets a row from the inverse basis matrix"""
+
+        # Number of columns: basis matrix is size m x m
+        m = self.nrows()
+
+        # Array to store coefficients of column
+        # Array to store non-zero indices
+        # Pointer to number of non-zero indices
+        cdef SCIP_Real* c_coefs = <SCIP_Real*> malloc(m * sizeof(SCIP_Real))
+        cdef int* c_inds = <int*> malloc(m * sizeof(int))
+        cdef int c_ninds
+
+        # Call SCIP
+        PY_SCIP_CALL(SCIPlpiGetBInvRow(self.lpi, r, c_coefs, c_inds, &c_ninds))
+
+        # Create list of coefficients and their corresponding indices
+        inds = [c_inds[i] for i in range(c_ninds)]
+        coefs = [c_coefs[i] for i in inds]
+
+        # Free memory
+        free(c_coefs)
+        free(c_inds)
+
+        # Return two matched lists:
+        # - coefs: nonzero coefficients of requested basis inverse column
+        # - inds: corresponding row indices
+        return coefs, inds
+
     def isPrimalUnbounded(self):
         """Returns True iff LP is proven to be primal unbounded."""
         return SCIPlpiIsPrimalUnbounded(self.lpi)

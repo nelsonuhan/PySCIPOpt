@@ -1172,6 +1172,7 @@ cdef extern from "scip/scip.h":
     SCIP_RETCODE SCIPlpiSetIntpar(SCIP_LPI* lpi, SCIP_LPPARAM type, int ival)
     SCIP_RETCODE SCIPlpiSetRealpar(SCIP_LPI* lpi, SCIP_LPPARAM type, SCIP_Real dval)
     SCIP_RETCODE SCIPlpiGetBInvCol(SCIP_LPI* lpi, int c, SCIP_Real* coef, int* inds, int* ninds)
+    SCIP_RETCODE SCIPlpiGetBInvRow(SCIP_LPI* lpi, int r, SCIP_Real* coef, int* inds, int* ninds)
     SCIP_RETCODE SCIPlpiGetCols(SCIP_LPI* lpi, int firstcol, int lastcol, SCIP_Real* lb, SCIP_Real* ub, int* nnonz, int* beg, int* ind, SCIP_Real* val)
     SCIP_RETCODE SCIPlpiGetObj(SCIP_LPI* lpi, int firstcol, int lastcol, SCIP_Real* vals)
     SCIP_Bool    SCIPlpiHasPrimalRay(SCIP_LPI* lpi)
