@@ -512,6 +512,9 @@ cdef extern from "scip/scip.h":
     SCIP_Bool SCIPisObjChangedProbing(SCIP* scip)
     SCIP_Bool SCIPinProbing(SCIP* scip)
 
+    # Solution methods
+    SCIP_Bool SCIPsolIsOriginal(SCIP_SOL* sol)
+    int SCIPsolGetDepth(SCIP_SOL* sol)
 
     # Event Methods
     SCIP_RETCODE SCIPcatchEvent(SCIP* scip,
@@ -554,6 +557,7 @@ cdef extern from "scip/scip.h":
     SCIP_Real SCIPeventGetOldbound(SCIP_EVENT* event)
     SCIP_VAR* SCIPeventGetVar(SCIP_EVENT* event)
     SCIP_NODE* SCIPeventGetNode(SCIP_EVENT* event)
+    SCIP_SOL* SCIPeventGetSol(SCIP_EVENT* event)
     SCIP_RETCODE SCIPinterruptSolve(SCIP* scip)
 
 
@@ -736,6 +740,8 @@ cdef extern from "scip/scip.h":
     SCIP_RETCODE SCIPreadSolFile(SCIP* scip, const char* filename, SCIP_SOL* sol, SCIP_Bool xml, SCIP_Bool*	partial, SCIP_Bool*	error)
     SCIP_RETCODE SCIPcheckSol(SCIP* scip, SCIP_SOL* sol, SCIP_Bool printreason, SCIP_Bool completely, SCIP_Bool checkbounds, SCIP_Bool checkintegrality, SCIP_Bool checklprows, SCIP_Bool* feasible)
     SCIP_RETCODE SCIPcheckSolOrig(SCIP* scip, SCIP_SOL* sol, SCIP_Bool* feasible, SCIP_Bool printreason, SCIP_Bool completely)
+    SCIP_HEUR* SCIPgetSolHeur(SCIP* scip, SCIP_SOL* sol)
+    SCIP_Real SCIPgetSolTime(SCIP* scip, SCIP_SOL* sol)
 
     SCIP_RETCODE SCIPsetRelaxSolVal(SCIP* scip, SCIP_VAR* var, SCIP_Real val)
 
@@ -966,6 +972,7 @@ cdef extern from "scip/scip.h":
                                  SCIP_HEURDATA* heurdata)
     SCIP_HEURDATA* SCIPheurGetData(SCIP_HEUR* heur)
     SCIP_HEUR* SCIPfindHeur(SCIP* scip, const char* name)
+    const char* SCIPheurGetName(SCIP_HEUR* heur)
 
     #Relaxation plugin
     SCIP_RETCODE SCIPincludeRelax(SCIP* scip,

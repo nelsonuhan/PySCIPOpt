@@ -278,6 +278,11 @@ cdef class Event:
         cdef SCIP_NODE* node = SCIPeventGetNode(self.event)
         return Node.create(node)
 
+    def getSolution(self):
+        """gets solution for a solution event"""
+        cdef SCIP_SOL* sol = SCIPeventGetSol(self.event)
+        return Solution.create(sol)
+
 cdef class Column:
     """Base class holding a pointer to corresponding SCIP_COL"""
     cdef SCIP_COL* col
@@ -433,6 +438,12 @@ cdef class Solution:
         sol = Solution()
         sol.sol = scip_sol
         return sol
+
+    def isOriginal(self):
+        return SCIPsolIsOriginal(self.sol)
+
+    def getDepth(self):
+        return SCIPsolGetDepth(self.sol)
 
 cdef class Node:
     """Base class holding a pointer to corresponding SCIP_NODE"""
@@ -3486,6 +3497,10 @@ cdef class Model:
         """
         PY_SCIP_CALL(SCIPfreeSol(self._scip, &solution.sol))
 
+    def getNSols(self):
+        """ Gets number of feasible primal solutions in the solution storage """
+        return SCIPgetNSols(self._scip)
+
     def getSols(self):
         """Retrieve list of all feasible primal solutions stored in the solution storage."""
         cdef SCIP_SOL** _sols
@@ -3552,6 +3567,28 @@ cdef class Model:
         if not self.getStage() >= SCIP_STAGE_SOLVING:
             raise Warning("method cannot be called before problem is solved")
         return self.getSolVal(self._bestSol, var)
+
+    def getSolHeurName(self, Solution sol):
+        """Gets the name of the heuristic that found this solution
+        (or NULL if it's from the tree
+
+        :param Solution sol: solution
+
+        """
+        cdef SCIP_HEUR* heur
+        heur = SCIPgetSolHeur(self._scip, sol.sol)
+
+        if heur == NULL:
+            return 'tree'
+        else:
+            return str(SCIPheurGetName(heur), 'UTF-8')
+
+    def getSolTime(self, Solution sol):
+        """Gets clock time, when this solution was found
+
+        :param Solution sol: solution
+        """
+        return SCIPgetSolTime(self._scip, sol.sol)
 
     def getPrimalbound(self):
         """Retrieve the best primal bound."""
