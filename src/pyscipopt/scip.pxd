@@ -664,7 +664,11 @@ cdef extern from "scip/scip.h":
     SCIP_RETCODE SCIPgetLPBasisInd(SCIP* scip, int* basisind)
     SCIP_RETCODE SCIPgetLPBInvRow(SCIP* scip, int r, SCIP_Real* coefs, int* inds, int* ninds)
     SCIP_RETCODE SCIPgetLPBInvARow(SCIP* scip, int r, SCIP_Real* binvrow, SCIP_Real* coefs, int* inds, int* ninds)
+    SCIP_RETCODE SCIPgetLPBInvCol(SCIP* scip, int c, SCIP_Real* coefs, int* inds, int* ninds)
+    SCIP_RETCODE SCIPgetLPBInvACol(SCIP* scip, int c, SCIP_Real* coefs, int* inds, int* ninds)
     SCIP_RETCODE SCIPconstructLP(SCIP* scip, SCIP_Bool* cutoff)
+    SCIP_COL** SCIPgetLPCols(SCIP* scip)
+    SCIP_ROW** SCIPgetLPRows(SCIP* scip)
     SCIP_Real SCIPgetLPObjval(SCIP* scip)
     SCIP_Bool SCIPisLPSolBasic(SCIP* scip)
     SCIP_LPSOLSTAT SCIPgetLPSolstat(SCIP* scip)
@@ -734,14 +738,6 @@ cdef extern from "scip/scip.h":
     SCIP_RETCODE SCIPcheckSolOrig(SCIP* scip, SCIP_SOL* sol, SCIP_Bool* feasible, SCIP_Bool printreason, SCIP_Bool completely)
 
     SCIP_RETCODE SCIPsetRelaxSolVal(SCIP* scip, SCIP_VAR* var, SCIP_Real val)
-
-    # LP Relaxation Methods
-    int SCIPgetNLPRows(SCIP* scip)
-    int SCIPgetNLPCols(SCIP* scip)
-    SCIP_COL** SCIPgetLPCols(SCIP* scip)
-    SCIP_ROW** SCIPgetLPRows(SCIP* scip)
-    SCIP_RETCODE SCIPgetLPBasisInd(SCIP* scip, int* basisind)
-    SCIP_RETCODE SCIPgetLPBInvCol(SCIP* scip, int c, SCIP_Real* coefs, int* inds, int* ninds)
 
     # Column methods
     int SCIPcolGetIndex(SCIP_COL* col)
