@@ -1326,7 +1326,7 @@ cdef class Model:
         return [Row.create(rows[i]) for i in range(nrows)]
 
     def getLPCols(self):
-        ncols = self.NLPCols()
+        ncols = self.getNLPCols()
 
         # Allocate memory for columns
         cdef SCIP_COL** c_cols = <SCIP_COL**> malloc(ncols * sizeof(SCIP_COL*))
@@ -1344,7 +1344,7 @@ cdef class Model:
         return cols
 
     def getLPRows(self):
-        nrows = self.NLPRows()
+        nrows = self.getNLPRows()
 
         # Allocate memory for rows
         cdef SCIP_ROW** c_rows = <SCIP_ROW**> malloc(nrows * sizeof(SCIP_ROW*))
@@ -1395,7 +1395,7 @@ cdef class Model:
         Gets a row from the inverse basis matrix
         """
         # Number of columns: basis matrix is size nrows x nrows
-        m = self.nrows()
+        m = self.getNLPRows()
 
         # Array to store coefficients of column
         # Array to store non-zero indices
@@ -1425,7 +1425,7 @@ cdef class Model:
         Gets a column from the inverse basis matrix
         """
         # Number of rows: basis matrix is size nrows x nrows
-        m = self.nrows()
+        m = self.getNLPRows()
 
         # Array to store coefficients of column
         # Array to store non-zero indices
