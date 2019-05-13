@@ -3737,7 +3737,7 @@ cdef class Model:
 
         cdef SCIP_MESSAGEHDLR *myMessageHandler
 
-        PY_SCIP_CALL(SCIPmessagehdlrCreate(&myMessageHandler, False, NULL, False, relayMessage, relayMessage, relayMessage, NULL, NULL))
+        PY_SCIP_CALL(SCIPmessagehdlrCreate(&myMessageHandler, True, NULL, False, relayMessage, relayMessage, relayMessage, NULL, NULL))
         PY_SCIP_CALL(SCIPsetMessagehdlr(self._scip, myMessageHandler))
         SCIPmessageSetErrorPrinting(relayErrorMessage, NULL)
 
