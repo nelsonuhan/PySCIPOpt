@@ -938,6 +938,12 @@ cdef class Model:
         else:
             return SCIPgetTransObjoffset(self._scip)
 
+    def getTransObjscale(self):
+        """
+        returns the objective scale of the transformed problem
+        """
+        return SCIPgetTransObjscale(self._scip)
+
     # Setting parameters
     def setPresolve(self, setting):
         """Set presolving parameter settings.
@@ -3589,6 +3595,12 @@ cdef class Model:
         :param Solution sol: solution
         """
         return SCIPgetSolTime(self._scip, sol.sol)
+
+    def retransformObj(self, obj):
+        """
+        maps transformed objective value into original space
+        """
+        return SCIPretransformObj(self._scip, obj)
 
     def getPrimalbound(self):
         """Retrieve the best primal bound."""

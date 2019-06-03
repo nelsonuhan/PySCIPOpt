@@ -576,6 +576,7 @@ cdef extern from "scip/scip.h":
     SCIP_RETCODE SCIPaddOrigObjoffset(SCIP* scip, SCIP_Real addval)
     SCIP_Real SCIPgetOrigObjoffset(SCIP* scip)
     SCIP_Real SCIPgetTransObjoffset(SCIP* scip)
+    SCIP_Real SCIPgetTransObjscale(SCIP* scip)
     SCIP_RETCODE SCIPsetPresolving(SCIP* scip, SCIP_PARAMSETTING paramsetting, SCIP_Bool quiet)
     SCIP_RETCODE SCIPsetSeparating(SCIP* scip, SCIP_PARAMSETTING paramsetting, SCIP_Bool quiet)
     SCIP_RETCODE SCIPsetHeuristics(SCIP* scip, SCIP_PARAMSETTING paramsetting, SCIP_Bool quiet)
@@ -742,6 +743,7 @@ cdef extern from "scip/scip.h":
     SCIP_RETCODE SCIPcheckSolOrig(SCIP* scip, SCIP_SOL* sol, SCIP_Bool* feasible, SCIP_Bool printreason, SCIP_Bool completely)
     SCIP_HEUR* SCIPgetSolHeur(SCIP* scip, SCIP_SOL* sol)
     SCIP_Real SCIPgetSolTime(SCIP* scip, SCIP_SOL* sol)
+    SCIP_Real SCIPretransformObj(SCIP* scip, SCIP_Real obj)
 
     SCIP_RETCODE SCIPsetRelaxSolVal(SCIP* scip, SCIP_VAR* var, SCIP_Real val)
 
